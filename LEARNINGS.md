@@ -5,6 +5,20 @@ Ir agregando arriba de todo lo nuevo. Fechas en formato AAAA-MM-DD.
 
 ---
 
+## Proceso / cómo debuggear (meta — lo más importante)
+
+Lecciones de *cómo* trabajar, no de código. Estas me costaron más caras que los bugs técnicos (2026-07-08).
+
+- **Medir antes de teorizar.** Cuando algo no da como espero, ir al **dato duro** (leer el píxel/estado real, renderizar) ANTES de armar una hipótesis. Con el "lavado amarillo" perdí ~15 idas y vueltas porque teoricé (culpé a `undo_disable`, después al alpha) en vez de aislar y medir. La causa real (selección vacía por coord fuera de canvas) apareció recién cuando hice el test aislado.
+- **No quedarse con la primera causa plausible.** Tuve tres hipótesis equivocadas seguidas para el mismo síntoma. Si un fix "razonable" no cambia el resultado, **descartar la hipótesis con una medición**, no encadenar otra suposición.
+- **Sospechar de MÍ antes que del entorno.** Ante `name 'p' is not defined` asumí "el contexto quedó degradado tras el restart". Era un error mío (args sin anidar). Primero revisar mi propio input/formato antes de culpar al sistema.
+- **No confiar en los mensajes de "success" ni en los tools de muestreo.** `export_image` decía `success` y escribía PNG disfrazado de jpg/webp; `get_pixel_color` reportó "relleno" donde la capa estaba transparente. **Verificar el resultado real**: `file`/tamaño/dimensiones para archivos, `layer.get_pixel().get_rgba()` o render para píxeles.
+- **Cuestionar los supuestos del pedido cuando son verificables.** El usuario dijo "licencia MIT"; verifiqué y era GPLv3. Chequear antes de actuar sobre un dato que se puede confirmar en 10 segundos evita publicar/hacer algo incorrecto.
+- **Trabajo destructivo o hacia afuera → checkpoint.** Antes de git/push, mostrar el diff/preview y frenar. Antes de aplanar/exportar, trabajar sobre una COPIA para no romper el documento con capas.
+- **Anotar el gotcha apenas lo encuentro**, no al final: si aparece dos veces en la misma sesión (me pasó con el alpha del `edit_fill`), ya perdí tiempo que la nota habría ahorrado.
+
+---
+
 ## Plugin / server MCP
 
 ### Recargar código del plugin = reiniciar GIMP ENTERO
