@@ -18,6 +18,15 @@ Changes on top of the upstream project:
 - **MCP socket recovery fixes** — the plugin's accept loop now clears its `running` flag when it exits, and *Restart MCP Server* actually spawns a fresh accept thread. A dropped socket now recovers from the GIMP menu instead of needing a full restart.
 - **[`LEARNINGS.md`](LEARNINGS.md)** — a running log of gotchas learned working with this plugin (plugin reload, socket limits, drawing pitfalls, rembg background removal, etc.).
 
+### Staying in sync with upstream
+
+This fork keeps the original repo as the `upstream` remote. To pull in later changes from [maorcc/gimp-mcp](https://github.com/maorcc/gimp-mcp):
+
+```bash
+git fetch upstream
+git merge upstream/main
+```
+
 ## Demo
 
 ![GIMP MCP in action — AI agent driving GIMP through natural language](docs/mcpInAction.gif)
