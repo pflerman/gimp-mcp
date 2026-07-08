@@ -12,3 +12,22 @@
 
 # Generated test artifacts
 /tests/continuous_edit_test/output/
+
+# Backups (created while patching)
+*.bak
+*.bak-*
+*.orig
+
+# Test / scratch images (not part of the project)
+cat*.png
+cat*.jpg
+cat*.xcf
+cat*.webp
+cyberpunk.png
+_fixtest*
+*_rembg*.png
+
+# Python
+__pycache__/
+*.pyo
+.python-version

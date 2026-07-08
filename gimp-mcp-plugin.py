@@ -156,6 +156,10 @@ class MCPPlugin(Gimp.PlugIn):
                 client_thread.start()
 
             print("MCP server shutting down...")
+            # Ensure the flag reflects reality when the accept loop exits (e.g.
+            # after an OSError break); otherwise Start becomes a permanent no-op
+            # because it still believes the server is running.
+            self.running = False
             if self.socket:
                 try:
                     self.socket.close()
@@ -1399,10 +1403,18 @@ class MCPPlugin(Gimp.PlugIn):
             }
 
     def _restart_server(self):
-        """Gracefully restart the MCP socket server in-place."""
+        """Gracefully restart the MCP socket server in-place.
+
+        Signals any existing accept loop to stop, waits for it to release the
+        socket, then spawns a FRESH accept-loop thread. The previous version
+        only re-bound a socket without starting a thread to accept() on it, so
+        the port never actually served connections after a restart.
+        """
         try:
+            import time
             print("Restarting MCP server socket...")
-            # Close existing socket to force reconnect on next client call
+            # Tell the old accept loop (if any) to exit and drop its socket.
+            self.running = False
             if self.socket:
                 try:
                     self.socket.close()
@@ -1410,18 +1422,21 @@ class MCPPlugin(Gimp.PlugIn):
                     pass
                 self.socket = None
 
-            # Re-bind a fresh socket
-            import time
-            time.sleep(0.3)
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.socket.settimeout(1.0)
-            self.socket.bind((self.host, self.port))
-            self.socket.listen(1)
+            # Wait past the accept() timeout so the old loop fully unwinds and
+            # won't close the socket we are about to create.
+            time.sleep(1.3)
+
+            # Start a fresh server thread (it sets running=True, binds, listens
+            # and runs its own accept loop).
+            server_thread = threading.Thread(target=self._start_server_thread, daemon=True)
+            server_thread.start()
+            time.sleep(0.4)
+
             print(f"MCP server restarted on {self.host}:{self.port}")
             return {
                 "status": "success",
-                "results": {"restarted": True, "host": self.host, "port": self.port}
+                "results": {"restarted": True, "host": self.host,
+                            "port": self.port, "running": self.running}
             }
         except Exception as e:
             return {
@@ -1558,14 +1573,18 @@ class MCPPlugin(Gimp.PlugIn):
             gio_file = Gio.File.new_for_path(file_path)
             pdb = Gimp.get_pdb()
             fmt_lower = fmt.lower()
+            # GIMP 3.x exposes format writers as "file-<fmt>-export"
+            # (the older "file-<fmt>-save" names do not exist and made every
+            # lookup fall through to the PNG fallback, so JPEG/WEBP/TIFF were
+            # all silently written as PNG under the requested extension).
             proc_name_map = {
-                "png":  "file-png-save",
-                "jpeg": "file-jpeg-save",
-                "jpg":  "file-jpeg-save",
-                "webp": "file-webp-save",
-                "tiff": "file-tiff-save",
+                "png":  "file-png-export",
+                "jpeg": "file-jpeg-export",
+                "jpg":  "file-jpeg-export",
+                "webp": "file-webp-export",
+                "tiff": "file-tiff-export",
             }
-            proc_name = proc_name_map.get(fmt_lower, "file-png-save")
+            proc_name = proc_name_map.get(fmt_lower, "file-png-export")
             proc = pdb.lookup_procedure(proc_name)
             if proc is None:
                 # Fallback: try generic file-png-export

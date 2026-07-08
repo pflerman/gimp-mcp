@@ -54,6 +54,29 @@ Add to Claude Desktop config (`~/.config/Claude/claude_desktop_config.json`):
 
 There are no build, test, or lint commands as this is a simple Python script project without dependencies or test framework.
 
+### Editing the GIMP plugin (`gimp-mcp-plugin.py`) — gotchas
+
+- **Reloading plugin code requires a FULL GIMP restart, not "Restart MCP Server".**
+  The plugin process is long-lived (it keeps a persistent Python context and the
+  socket open), so *Tools > MCP > Restart MCP Server* only restarts the socket
+  thread inside the already-loaded module — it does **not** re-import the `.py`
+  from disk. After editing the plugin you must: **quit GIMP completely → reopen →
+  Tools > MCP > Start MCP Server.** Only then is the new code loaded.
+- **The plugin runs from an installed copy, separate from the repo.** GIMP loads it
+  from `~/.config/GIMP/3.2/plug-ins/gimp-mcp-plugin/gimp-mcp-plugin.py` (path is
+  version-specific — see the install section above). Editing only the repo file has
+  no effect until you copy it into that dir. **Sync both when editing:** patch the
+  repo, then `cp gimp-mcp-plugin.py ~/.config/GIMP/3.2/plug-ins/gimp-mcp-plugin/`
+  (and `chmod +x`). Verify with `diff` before restarting GIMP.
+- **GIMP 3.2 export procedures are `file-<fmt>-export`, not `file-<fmt>-save`.**
+  Correct names: `file-png-export`, `file-jpeg-export`, `file-webp-export`,
+  `file-tiff-export`. The old `file-*-save` names don't exist in 3.2, so
+  `pdb.lookup_procedure(...)` returns `None` and any fallback-to-PNG logic will
+  silently write PNG under the requested extension. Quality scale differs per
+  procedure: `file-jpeg-export` `quality` is a gdouble **0.0–1.0** (pass
+  `quality/100.0`); `file-webp-export` `quality` is a gdouble **0.0–100.0** (pass
+  as-is); PNG and TIFF export have no `quality` property.
+
 ## API Usage
 
 ### Core MCP Tool

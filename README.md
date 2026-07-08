@@ -6,6 +6,18 @@
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io)
 [![CodeRabbit](https://img.shields.io/badge/CodeRabbit-AI%20Review-171717?logo=coderabbit)](https://coderabbit.ai)
 
+> **Fork of [maorcc/gimp-mcp](https://github.com/maorcc/gimp-mcp) with fixes and improvements.**
+> All credit for the original project goes to [@maorcc](https://github.com/maorcc).
+> This fork keeps the original **GPLv3** license (see [`LICENSE`](LICENSE)).
+
+## My changes / Mis cambios
+
+Changes on top of the upstream project:
+
+- **`export_image` fix** — use GIMP 3.2's `file-*-export` procedures. The old `file-*-save` names don't exist in 3.2, so every export silently fell back to PNG regardless of the requested `format`/`quality`.
+- **MCP socket recovery fixes** — the plugin's accept loop now clears its `running` flag when it exits, and *Restart MCP Server* actually spawns a fresh accept thread. A dropped socket now recovers from the GIMP menu instead of needing a full restart.
+- **[`LEARNINGS.md`](LEARNINGS.md)** — a running log of gotchas learned working with this plugin (plugin reload, socket limits, drawing pitfalls, rembg background removal, etc.).
+
 ## Demo
 
 ![GIMP MCP in action — AI agent driving GIMP through natural language](docs/mcpInAction.gif)
